@@ -1,0 +1,254 @@
+<!--
+  Copyright 2018 The Chromium Authors. All rights reserved.
+  Use of this source code is governed by a BSD-style license that can be
+  found in the LICENSE file.
+-->
+<html lang='en'>
+
+<head>
+    <title>Binary Size Analysis</title>
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            font-display: fallback;
+            src: local('Roboto Regular'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxK.woff2)format('woff2');
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-weight: 500;
+            font-display: fallback;
+            src: local('Roboto Medium'), local('Roboto-Medium'), url(https://fonts.gstatic.com/s/roboto/v18/KFOlCnqEu92Fr1MmEU9fBBc4.woff2)format('woff2');
+        }
+
+        @font-face {
+            font-family: 'Google Sans';
+            font-display: swap;
+            src: local('Google Sans Regular'), local('GoogleSans-Regular'), url(https://fonts.gstatic.com/s/googlesans/v5/4UaGrENHsxJlGDuGo1OIlL3Owp4.woff2)format('woff2');
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: auto 256px;
+            grid-template-rows: 64px 1fr;
+            grid-template-areas: 'appbar options' 'symbols options';
+            color: #3c4043;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .appbar {
+            grid-area: appbar;
+            padding: 0 48px;
+        }
+
+        .options {
+            grid-area: options;
+            padding: 0 16px;
+            border-left: 1px solid #dadce0;
+        }
+
+        .symbols {
+            grid-area: symbols;
+            padding: 0 48px;
+        }
+
+        .headline,
+        .headline-small {
+            font-family: 'Google Sans', Arial, sans-serif;
+            font-weight: normal;
+            color: #202124;
+        }
+
+        .headline {
+            margin: 0;
+            font-size: 22px;
+            line-height: 64px;
+        }
+
+        .headline-small {
+            font-size: 18px;
+        }
+
+        .subtitle {
+            font-weight: 500;
+            color: #5f6368;
+            font-size: 13px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .tree {
+            font-size: 13px;
+        }
+
+        ul[role='group'] {
+            padding-left: 13px;
+            border-left: 1px solid #dadce0;
+            margin-left: 10px;
+        }
+
+        .icon {
+            margin-right: 6px;
+        }
+
+        .node {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .node::before {
+            content: '';
+            display: inline-block;
+            margin: 10px;
+            width: 0;
+            height: 0;
+            transition: transform .1s ease-out;
+        }
+
+        [aria-expanded]>.node::before {
+            margin: 5px 7px 5px 8px;
+            border-style: solid;
+            border-width: 5px 0 5px 5px;
+            border-color: transparent transparent transparent currentColor;
+        }
+
+        [aria-expanded='true']>.node::before {
+            transform: rotate(90deg);
+        }
+
+        .symbol-name {
+            font-weight: 500;
+            word-break: break-word;
+            margin-right: auto;
+        }
+
+        .size,
+        .percent {
+            margin-left: 16px;
+            text-align: right;
+            color: #5f6368;
+            white-space: nowrap;
+        }
+
+        .size {
+            min-width: 6em;
+        }
+
+        .percent {
+            min-width: 4em;
+        }
+
+        .tree-header {
+            display: flex;
+            padding: 8px 0;
+            margin-left: 48px;
+            line-height: 24px;
+            border-bottom: 1px solid #dadce0;
+        }
+    </style>
+    <script defer src='tree.js'></script>
+    <script defer async onload='loadTree(tree_data);' src='data.js'></script>
+</head>
+
+<body>
+    <header class='appbar'>
+        <h1 class='headline'>Binary Size Analysis</h1>
+    </header>
+    <nav class='options'></nav>
+    <main class='symbols'>
+        <div hidden id='icons'>
+            <svg class='icon foldericon' height='24' width='24' fill='#5f6368'>
+                <title>Directory</title>
+                <path d='M9.17,6l2,2H20v10L4,18V6H9.17 M10,4H4C2.9,4,2.01,4.9,2.01,6L2,18c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V8c0-1.1-0.9-2-2-2
+                         h-8L10,4L10,4z' />
+            </svg>
+            <svg class='icon fileicon' height='24' width='24' fill='#5f6368'>
+                <title>File</title>
+                <path d='M14,2H6C4.9,2,4.01,2.9,4.01,4L4,20c0,1.1,0.89,2,1.99,2H18c1.1,0,2-0.9,2-2V8L14,2z M6,20V4h7v5h5v11
+                         L6,20z' />
+            </svg>
+            <svg class='icon bssicon' height='24' width='24' fill='#a142f4'>
+                <title>Uninitialized data (.bss)</title>
+                <path d='M6 2a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm0 2h7v5h5v11H6V4zm4 6v4h2v-4h-2zm0 6v2h2v-2h-2z' />
+            </svg>
+            <svg class='icon dataicon' height='24' width='24' fill='#fa7b17'>
+                <title>Initialized data (.data)</title>
+                <path d='M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6m0 2h7v5h5v11H6V4m2 8v2h8v-2H8m0 4v2h5v-2z' />
+            </svg>
+            <svg class='icon readonlyicon' height='24' width='24' fill='#24c1e0'>
+                <title>Read-only data (.rodata)</title>
+                <path d='M6 2a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm0 2h7v5h5v11H6V4zm5.9 8c-2 0-3.7 1.2-4.4 3a4.7 4.7 0 0 0 8.8 0c-.7-1.8-2.4-3-4.4-3zm0 1a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2zm0 .8a1.2 1.2 0 0 0-1.2 1.2 1.2 1.2 0 0 0 1.2 1.2 1.2 1.2 0 0 0 1.2-1.2 1.2 1.2 0 0 0-1.2-1.2z' />
+            </svg>
+            <svg class='icon codeicon' height='24' width='24' fill='#1a73e8'>
+                <title>Code (.text)</title>
+                <path d='M9.4,16.6L4.8,12l4.6-4.6L8,6l-6,6l6,6L9.4,16.6z M14.6,16.6l4.6-4.6l-4.6-4.6L16,6l6,6l-6,6L14.6,16.6z' />
+            </svg>
+            <svg class='icon vtableicon' height='24' width='24' fill='#fbbc04'>
+                <title>Vtable entries</title>
+                <path d='M20,3H5C3.9,3,3,3.9,3,5v14c0,1.1,0.9,2,2,2h15c1.1,0,2-0.9,2-2V5C22,3.9,21.1,3,20,3z M20,5v3H5V5H20z M15,19h-5v-9h5V19z
+                         M5,10h3v9H5V10z M17,19v-9h3v9H17z' />
+            </svg>
+            <svg class='icon generatedicon' height='24' width='24' fill='#f439a0'>
+                <title>Generated Symbols (typeinfo, thunks, etc)</title>
+                <path d='M6 2a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm0 2h7v5h5v11H6V4zm9.5 8l-.6 1.4-1.4.6 1.4.6.6 1.4.6-1.4 1.4-.6-1.4-.6-.6-1.4zm-6 1l-1 2-2 1 2 1 1 2 1-2 2-1-2-1-1-2z' />
+            </svg>
+            <svg class='icon dexicon' height='24' width='24' fill='#ea4335'>
+                <title>Dex non-method entries</title>
+                <path d='M6.6 1.4l-.8.9 2 2A6.3 6.3 0 0 0 5 9.4v.8a.8.8 0 0 0 .8.8h12.4a.8.8 0 0 0 .8-.8v-.8c0-2-1.1-4-2.8-5.1l2-2-.8-.9-2.3 2.3a7.4 7.4 0 0 0-6.2 0L6.6 1.4zM12 4.5c.9 0 1.7.2 2.5.5l.8.5c1.3.9 2.2 2.3 2.2 4h-11c0-1.7.9-3.1 2.2-4l.9-.5c.7-.3 1.5-.5 2.4-.5zM9 7a1 1 0 0 0-1 1c0 .5.4 1 1 1s1-.4 1-1c0-.5-.4-1-1-1zm6 0a1 1 0 0 0-1 1c0 .5.4 1 1 1s1-.4 1-1c0-.5-.4-1-1-1zm-9.3 5a.8.8 0 0 0-.7.8v3.4a7 7 0 0 0 7 6.8c3.8 0 7-3 7-6.8v-3.4a.8.8 0 0 0-.8-.8H5.8zm.8 1.5h11v2.7c0 3-2.4 5.3-5.5 5.3-3 0-5.5-2.4-5.5-5.3v-2.7z' />
+            </svg>
+            <svg class='icon dexmethodicon' height='24' width='24' fill='#a50e0e'>
+                <title>Dex methods</title>
+                <path d='M6.6 1.4l-.8.9 2 2A6.3 6.3 0 0 0 5 9.4v.8a.8.8 0 0 0 .8.8h12.4a.8.8 0 0 0 .8-.8v-.8c0-2-1.1-4-2.8-5.1l2-2-.8-.9-2.3 2.3a7.4 7.4 0 0 0-6.2 0L6.6 1.4zM12 4.5c.9 0 1.7.2 2.5.5l.8.5c1.3.9 2.2 2.3 2.2 4h-11c0-1.7.9-3.1 2.2-4l.9-.5c.7-.3 1.5-.5 2.4-.5zM9 7a1 1 0 0 0-1 1c0 .5.4 1 1 1s1-.4 1-1c0-.5-.4-1-1-1zm6 0a1 1 0 0 0-1 1c0 .5.4 1 1 1s1-.4 1-1c0-.5-.4-1-1-1zm-9.3 5a.8.8 0 0 0-.7.8v3.4a7 7 0 0 0 7 6.8c3.8 0 7-3 7-6.8v-3.4a.8.8 0 0 0-.8-.8H5.8zm.8 1.5h11v2.7c0 3-2.4 5.3-5.5 5.3-3 0-5.5-2.4-5.5-5.3v-2.7z' />
+            </svg>
+            <svg class='icon localpakicon' height='24' width='24' fill='#34a853'>
+                <title>Locale Pak Entries</title>
+                <path d='M5 3a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5zm0 2h5v2h2V5h7v14H5V5zm7 2v2h2V7h-2zm0 2h-2v2h2V9zm0 2v2h2v-2h-2zm0 2h-2v2h2v-2zm0 2v2h2v-2h-2z' />
+            </svg>
+            <svg class='icon nonlocalpakicon' height='24' width='24' fill='#0d652d'>
+                <title>Non-Locale Pak Entries</title>
+                <path d='M5 3a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5zm0 2h5v2h2V5h7v14H5V5zm7 2v2h2V7h-2zm0 2h-2v2h2V9zm0 2v2h2v-2h-2zm0 2h-2v2h2v-2zm0 2v2h2v-2h-2z' />
+            </svg>
+            <svg class='icon othericon' height='24' width='24' fill='#5f6368'>
+                <title>Other Entries</title>
+                <path d='M10.88 2l-.85 1.36L4 13h6v-2H7.6l3.28-5.23L12.28 8h2.35l-3.75-6zM12 10v10h10V10H12zm2 2h6v6h-6v-6zM2.21 15A5.52 5.52 0 0 0 10 21.4v-2.45A3.48 3.48 0 0 1 7.5 20a3.48 3.48 0 0 1-3.15-5H2.2z' />
+            </svg>
+        </div>
+        <template id='treefolder'>
+            <li role='treeitem' aria-expanded='false'>
+                <a class='node' href='#'>
+                    <div class='icon-box'></div>
+                    <span class='symbol-name'></span>
+                    <span class='size'></span>
+                    <span class='percent'></span>
+                </a>
+                <ul role='group' hidden></ul>
+            </li>
+        </template>
+        <template id='treeitem'>
+            <li role='treeitem'>
+                <span class='node'>
+                    <div class='icon-box'></div>
+                    <span class='symbol-name'></span>
+                    <span class='size'></span>
+                    <span class='percent'></span>
+                </span>
+            </li>
+        </template>
+        <header class='tree-header'>
+            <span class='subtitle symbol-name'>Name</span>
+            <span class='subtitle size'>Size</span>
+            <span class='subtitle percent'>Percent</span>
+        </header>
+        <ul id='symboltree' class='tree' role='tree' aria-labelledby='headline'></ul>
+    </main>
+</body>
+
+</html>
