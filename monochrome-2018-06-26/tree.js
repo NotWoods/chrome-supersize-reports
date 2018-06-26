@@ -1,7 +1,7 @@
 // Copyright 2018 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file
-// @ts-check
+// found in the LICENSE file.
+
 'use strict';
 
 /**
@@ -35,7 +35,7 @@
     r: _icons.querySelector('.readonlyicon'),
     t: _icons.querySelector('.codeicon'),
     v: _icons.querySelector('.vtableicon'),
-    '!': _icons.querySelector('.generatedicon'),
+    '*': _icons.querySelector('.generatedicon'),
     x: _icons.querySelector('.dexicon'),
     m: _icons.querySelector('.dexmethodicon'),
     p: _icons.querySelector('.localpakicon'),
@@ -48,25 +48,19 @@
   const _treeTemplate = document.getElementById('treefolder');
 
   /**
-   * @type {WeakSet<HTMLElement>} Set of UI tree nodes with children
-   * that were already added to the DOM.
-   */
-  const _didInflateChildren = new WeakSet();
-
-  /**
    * @type {WeakMap<HTMLElement, Readonly<TreeNode>>}
    * Associates UI nodes with the corresponding tree data object
    * so that event listeners and other methods can
    * query the original data.
    */
-  const UI_NODE_DATA = new WeakMap();
+  const _uiNodeData = new WeakMap();
 
   /**
    * Replace the contexts of the size element for a tree node.
    * The unit to use is selected from the current state,
    * and the original number of bytes will be displayed as
    * hover text over the element.
-   * @param {Element} sizeElement Element that shoudl display the byte size
+   * @param {HTMLElement} sizeElement Element that shoudl display the byte size
    * @param {number} bytes Number of bytes to use for the size text
    */
   function _setSizeContents(sizeElement, bytes) {
@@ -106,12 +100,11 @@
       element.setAttribute('aria-expanded', 'false');
       group.setAttribute('hidden', '');
     } else {
-      if (!_didInflateChildren.has(group)) {
-        const data = UI_NODE_DATA.get(link);
+      if (group.children.length === 0) {
+        const data = _uiNodeData.get(link);
         group.appendChild(
           dom.createFragment(data.children.map(child => newTreeElement(child)))
         );
-        _didInflateChildren.add(group);
       }
 
       element.setAttribute('aria-expanded', 'true');
@@ -134,7 +127,7 @@
 
     // Associate clickable node & tree data
     const link = element.querySelector('.node');
-    UI_NODE_DATA.set(link, Object.freeze(data));
+    _uiNodeData.set(link, Object.freeze(data));
 
     // Icons are predefined in the HTML through hidden SVG elements
     const iconTemplate = _SYMBOL_ICONS[data.type] || _SYMBOL_ICONS.o;
@@ -161,7 +154,7 @@
   form.byteunit.addEventListener('change', event => {
     // Update existing size elements with the new unit
     for (const sizeElement of document.getElementsByClassName('size')) {
-      const data = UI_NODE_DATA.get(sizeElement.parentElement);
+      const data = _uiNodeData.get(sizeElement.parentElement);
       _setSizeContents(sizeElement, data.size);
     }
   });
@@ -178,10 +171,10 @@
 {
   const blob = new Blob([
     `
-// Copyright 2018 The Chromium Authors. All rights reserved.
+    // Copyright 2018 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file
-// @ts-check
+// found in the LICENSE file.
+
 'use strict';
 
 /**
@@ -417,9 +410,19 @@ function makeTree(symbols, getPath, sep) {
   return rootNode;
 }
 
-/** Create a tree when this worker receives a message. */
-self.onmessage = ({data}) => {
-  const {treeData, sep = '/'} = data;
+/**
+ * Assemble a tree when this worker receives a message.
+ * @param {MessageEvent} event Event for when this worker receives a message.
+ * @param {object} event.data Event data from the UI thread.
+ * @param {string} event.data.treeData Stringified JSON representing the symbol
+ * tree as a flat list of files.
+ * @param {string} event.data.sep Path seperator used to split file paths, such
+ * as '/'.
+ * @param {string} event.data.filters Query string used to filter the resulting
+ * tree.
+ */
+self.onmessage = event => {
+  const {treeData, sep = '/'} = event.data;
   /** @type {DataFile} JSON tree parsed from string sent over */
   const tree = JSON.parse(treeData);
   const rootNode = makeTree(
@@ -431,8 +434,10 @@ self.onmessage = ({data}) => {
   // @ts-ignore
   self.postMessage(rootNode);
 };
+
     `,
   ]);
+  // We use a worker to keep large tree creation logic off the UI thread
   const worker = new Worker(URL.createObjectURL(blob));
 
   /**
@@ -448,8 +453,8 @@ self.onmessage = ({data}) => {
   };
 
   /**
-   * Loads the tree data given on a worker thread and replaces the tree view in the UI
-   * once complete. Uses query string as state for the filter.
+   * Loads the tree data given on a worker thread and replaces the tree view in
+   * the UI once complete. Uses query string as state for the filter.
    * @param {string} treeData JSON string to be parsed on the worker thread.
    */
   function loadTree(treeData) {

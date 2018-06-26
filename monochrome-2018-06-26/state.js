@@ -1,7 +1,7 @@
 // Copyright 2018 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file
-// @ts-check
+// found in the LICENSE file.
+
 'use strict';
 
 /**
@@ -53,9 +53,10 @@ const dom = {
      * value if supplied.
      * @param {string} key
      * @param {object} [options]
-     * @param {string} [options.default] Default to use if key is not present in the state
-     * @param {Set<string>} [options.valid] If provided, values must be in this set to be
-     * returned. Invalid values will return null or `defaultValue`.
+     * @param {string} [options.default] Default to use if key is not present
+     * in the state
+     * @param {Set<string>} [options.valid] If provided, values must be in this
+     * set to be returned. Invalid values will return null or `defaultValue`.
      * @returns {string | null}
      */
     get(key, options = {}) {
@@ -69,8 +70,8 @@ const dom = {
       return val;
     },
     /**
-     * Set the value in the state, overriding any existing value.
-     * Afterwards display the new state in the URL by replacing the current history entry.
+     * Set the value in the state, overriding any existing value. Afterwards
+     * display the new state in the URL by replacing the current history entry.
      * @param {string} name
      * @param {string} value
      */
