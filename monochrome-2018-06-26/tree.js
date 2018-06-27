@@ -76,7 +76,7 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    const textNode = document.createTextNode(text + ' ');
+    const textNode = document.createTextNode(`${text} `);
 
     // Display the suffix with a smaller font
     const suffixElement = document.createElement('small');
@@ -88,7 +88,11 @@
       bytes.toLocaleString(undefined, {useGrouping: true}) + ' bytes';
   }
 
-  function _expandTreeElement(event) {
+  /**
+   * Click event handler to expand or close the child group of a tree.
+   * @param {Event} event
+   */
+  function _toggleTreeElement(event) {
     event.preventDefault();
 
     const link = event.currentTarget;
@@ -144,7 +148,7 @@
     _setSizeContents(element.querySelector('.size'), data.size);
 
     if (!isLeaf) {
-      link.addEventListener('click', _expandTreeElement);
+      link.addEventListener('click', _toggleTreeElement);
     }
 
     return element;
@@ -422,13 +426,14 @@ function makeTree(symbols, getPath, sep) {
  * tree.
  */
 self.onmessage = event => {
-  const {treeData, sep = '/'} = event.data;
-  /** @type {DataFile} JSON tree parsed from string sent over */
-  const tree = JSON.parse(treeData);
+  /** @type {{tree:DataFile,filters:string}} JSON data parsed from string */
+  const {tree, filters} = JSON.parse(event.data);
+  const params = new URLSearchParams(filters);
+
   const rootNode = makeTree(
     tree.file_nodes,
     s => tree.source_paths[s[_KEYS.SOURCE_PATH_INDEX]],
-    sep
+    params.get('sep') || '/'
   );
 
   // @ts-ignore
@@ -458,7 +463,10 @@ self.onmessage = event => {
    * @param {string} treeData JSON string to be parsed on the worker thread.
    */
   function loadTree(treeData) {
-    worker.postMessage({treeData, sep: '/', filters: location.search.slice(1)});
+    // Post as a JSON string for better performance
+    worker.postMessage(
+      `{"tree":${treeData}, "filters":"${location.search.slice(1)}"}`
+    );
   }
 
   self.loadTree = loadTree;
