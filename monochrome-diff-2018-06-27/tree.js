@@ -86,8 +86,12 @@
     dom.replace(sizeElement, dom.createFragment([textNode, suffixElement]));
     sizeElement.title =
       bytes.toLocaleString(undefined, {useGrouping: true}) + ' bytes';
-    if (bytes < 0) sizeElement.classList.add('negative');
-    else sizeElement.classList.remove('negative');
+
+    if (bytes < 0) {
+      sizeElement.classList.add('negative');
+    } else {
+      sizeElement.classList.remove('negative');
+    }
   }
 
   /**
@@ -289,12 +293,21 @@ function combineSingleChildNodes(node, sep) {
 }
 
 /**
+ * Compare two nodes for sorting. Used in sortTree.
+ * @param {TreeNode} a
+ * @param {TreeNode} b
+ */
+function _compareFunc(a, b) {
+  return Math.abs(b.size) - Math.abs(a.size);
+}
+
+/**
  * Sorts nodes in place based on their sizes.
  * @param {TreeNode} node Node whose children will be sorted. Will be modified
  * by this function.
  */
 function sortTree(node) {
-  node.children.sort((a, b) => b.size - a.size);
+  node.children.sort(_compareFunc);
   node.children.forEach(sortTree);
 }
 
