@@ -152,6 +152,12 @@ function _startListeners(state) {
   if (localStorage.getItem('show-options') === 'true') {
     document.body.classList.add('show-options');
   }
+
+  // Disable some fields when method_count is set
+  if (state.has('method_count')) {
+    document.getElementById('size-header').textContent = 'Methods';
+    form.byteunit.setAttribute('disabled', '');
+  }
 }
 
 /** Utilities for working with the state */

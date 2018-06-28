@@ -175,6 +175,7 @@
             </button>
         </header>
 
+        <h2 class="subhead">Size options</h2>
         <div class="select-wrapper">
             <select id="byteunit" name="byteunit" data-dynamic>
                 <option value="B">B - bytes</option>
@@ -184,6 +185,10 @@
             </select>
             <label class="select-label" for="byteunit">Byte unit</label>
         </div>
+        <p class="checkbox-wrapper">
+            <input type="checkbox" id="methodcount" name="method_count" value="on">
+            <label class="checkbox-label" for="methodcount">Show dex method count rather than size</label>
+        </p>
 
         <p style="text-align:right">
             <button class="filled-button" type="submit">Update</button>

@@ -194,6 +194,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @ts-check
 'use strict';
 
 /**
@@ -361,10 +362,12 @@ function createNode(options, sep) {
  * a symbol should be included. If a symbol fails the test, it will not be
  * attached to the tree.
  * @param {string} options.sep Path seperator used to find parent names.
+ * @param {boolean} options.methodCountMode If true, return number of dex
+ * methods instead of size.
  * @returns {TreeNode} Root node of the new tree
  */
 function makeTree(options) {
-  const {symbols, sep, getPath, filterTest} = options;
+  const {symbols, sep, methodCountMode, getPath, filterTest} = options;
   const rootNode = createNode(
     {idPath: '/', shortName: '/', type: _DIRECTORY_TYPE},
     sep
@@ -416,11 +419,12 @@ function makeTree(options) {
     const node = createNode({idPath, type: _FILE_TYPE}, sep);
     // build child nodes for this file's symbols and attach to self
     for (const symbol of fileNode[_KEYS.FILE_SYMBOLS]) {
+      const size = methodCountMode ? 1 : symbol[_KEYS.SIZE];
       const symbolNode = createNode(
         {
           idPath: idPath + ':' + symbol[_KEYS.SYMBOL_NAME],
           shortName: symbol[_KEYS.SYMBOL_NAME],
-          size: symbol[_KEYS.SIZE],
+          size,
           type: symbol[_KEYS.TYPE],
         },
         sep
@@ -459,12 +463,18 @@ self.onmessage = event => {
 
   const params = new URLSearchParams(options);
   const sep = params.get('sep') || '/';
-  const types = params.getAll('types');
-  const typeFilter = new Set(types.length === 0 ? 'bdrtv*xmpPo' : types);
+  const methodCountMode = params.has('method_count');
+  let typeFilter;
+  if (methodCountMode) typeFilter = new Set('m');
+  else {
+    const types = params.getAll('types');
+    typeFilter = new Set(types.length === 0 ? 'bdrtv*xmpPo' : types);
+  }
 
   const rootNode = makeTree({
     symbols: tree.file_nodes,
     sep,
+    methodCountMode,
     getPath: s => tree.source_paths[s[_KEYS.SOURCE_PATH_INDEX]],
     filterTest: s => typeFilter.has(s.type),
   });
@@ -483,12 +493,6 @@ self.onmessage = event => {
    * @param {{data:{root:TreeNode,meta:object}}} param0
    */
   worker.onmessage = ({data}) => {
-    if (data.meta.method_count_mode) {
-      document.getElementById('size-header').textContent = 'Methods';
-      form.byteunit.setAttribute('disabled', '');
-      state.set('method_count', 'on');
-    }
-
     const root = newTreeElement(data.root);
     // Expand the root UI node
     root.querySelector('.node').click();
