@@ -6,7 +6,8 @@
 
 /**
  * @fileoverview
- * UI classes and methods for the Binary Size Analysis HTML report.
+ * UI classes and methods for the Tree View in the
+ * Binary Size Analysis HTML report.
  */
 
 {
@@ -60,10 +61,27 @@
 
   /**
    * Replace the contexts of the size element for a tree node.
+   * If in method count mode, size instead represents the amount of methods in
+   * the node. In this case, don't append a unit at the end.
+   * @param {HTMLElement} sizeElement Element that should display the count
+   * @param {number} methodCount Number of methods to use for the count text
+   */
+  function _setMethodCountContents(sizeElement, methodCount) {
+    const methodStr = methodCount.toLocaleString(undefined, {
+      useGrouping: true,
+    });
+
+    const textNode = document.createTextNode(methodStr);
+    dom.replace(sizeElement, textNode);
+    sizeElement.title = `${methodStr} methods`;
+  }
+
+  /**
+   * Replace the contexts of the size element for a tree node.
    * The unit to use is selected from the current state,
    * and the original number of bytes will be displayed as
    * hover text over the element.
-   * @param {HTMLElement} sizeElement Element that shoudl display the byte size
+   * @param {HTMLElement} sizeElement Element that should display the size
    * @param {number} bytes Number of bytes to use for the size text
    */
   function _setSizeContents(sizeElement, bytes) {
@@ -163,11 +181,6 @@
       element.click();
     }
 
-    function _isSibling(index) {
-      const siblingData = _uiNodeData.get(_liveNodeList[index]);
-      return siblingData && siblingData.parent === data.parent;
-    }
-
     function _focusIfStartsWith(char, index) {
       const data = _uiNodeData.get(_liveNodeList[index]);
       if (data.shortName.startsWith(event.key)) {
@@ -211,7 +224,10 @@
           _toggle();
         } else {
           let parentIndex = focusIndex;
-          while (parentIndex > -1 && _isSibling(parentIndex)) {
+          while (
+            parentIndex > -1 &&
+            _uiNodeData.get(_liveNodeList[parentIndex]) !== data.parent
+          ) {
             parentIndex--;
           }
           if (parentIndex > -1) {
@@ -273,7 +289,10 @@
     symbolName.title = data.idPath;
 
     // Set the byte size and hover text
-    _setSizeContents(element.querySelector('.size'), data.size);
+    const _setSize = state.has('method_count')
+      ? _setMethodCountContents
+      : _setSizeContents;
+    _setSize(element.querySelector('.size'), data.size);
 
     link.addEventListener('keydown', _handleKeyNavigation);
     if (!isLeaf) {
@@ -291,12 +310,6 @@
       _setSizeContents(sizeElement, data.size);
     }
   });
-  function _toggleOptions() {
-    document.body.classList.toggle('show-options');
-  }
-  for (const button of document.getElementsByClassName('toggle-options')) {
-    button.addEventListener('click', _toggleOptions);
-  }
 
   self.newTreeElement = newTreeElement;
 }
@@ -308,6 +321,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @ts-check
 'use strict';
 
 /**
@@ -325,6 +339,7 @@
  * the symbols.
  * @prop {string[]} components - Array of components referenced by index in the
  * symbols.
+ * @prop {object} meta - Metadata about the data
  */
 
 /**
@@ -475,14 +490,20 @@ function createNode(options, sep) {
 
 /**
  * Build a tree from a list of symbol objects.
- * @param {Iterable<FileEntry>} symbols List of basic symbols.
- * @param {(symbol: FileEntry) => string} getPath Called to get the id path of
- * a symbol.
- * @param {string} sep Path seperator used to find parent names.
- * Defaults to '/'.
+ * @param {object} options
+ * @param {Iterable<FileEntry>} options.symbols List of basic symbols.
+ * @param {(file: FileEntry) => string} options.getPath Called to get the id
+ * path of a symbol's file.
+ * @param {(symbol: TreeNode) => boolean} options.filterTest Called to see if
+ * a symbol should be included. If a symbol fails the test, it will not be
+ * attached to the tree.
+ * @param {string} options.sep Path seperator used to find parent names.
+ * @param {boolean} options.methodCountMode If true, return number of dex
+ * methods instead of size.
  * @returns {TreeNode} Root node of the new tree
  */
-function makeTree(symbols, getPath, sep) {
+function makeTree(options) {
+  const {symbols, sep, methodCountMode, getPath, filterTest} = options;
   const rootNode = createNode(
     {idPath: '/', shortName: '/', type: _DIRECTORY_TYPE},
     sep
@@ -490,6 +511,12 @@ function makeTree(symbols, getPath, sep) {
 
   /** @type {Map<string, TreeNode>} Cache for directory nodes */
   const parents = new Map();
+  /**
+   * Helper to return the parent of the given node. The parent is determined
+   * based in the idPath and the path seperator. If the parent doesn't yet
+   * exist, one is created and stored in the parents map.
+   * @param {TreeNode} node
+   */
   function getOrMakeParentNode(node) {
     // Get idPath of this node's parent.
     let parentPath;
@@ -517,6 +544,10 @@ function makeTree(symbols, getPath, sep) {
     attachToParent(node, parentNode);
   }
 
+  // Iterate through every file node generated by supersize. Each node includes
+  // symbols that belong to that file. Create a tree node for each file with
+  // tree nodes for that file's symbols attached. Afterwards attach that node to
+  // its parent directory node, or create it if missing.
   for (const fileNode of symbols) {
     // make path for this
     const idPath = getPath(fileNode);
@@ -524,19 +555,21 @@ function makeTree(symbols, getPath, sep) {
     const node = createNode({idPath, type: _FILE_TYPE}, sep);
     // build child nodes for this file's symbols and attach to self
     for (const symbol of fileNode[_KEYS.FILE_SYMBOLS]) {
+      const size = methodCountMode ? 1 : symbol[_KEYS.SIZE];
       const symbolNode = createNode(
         {
           idPath: idPath + ':' + symbol[_KEYS.SYMBOL_NAME],
           shortName: symbol[_KEYS.SYMBOL_NAME],
-          size: symbol[_KEYS.SIZE],
+          size,
           type: symbol[_KEYS.TYPE],
         },
         sep
       );
-      attachToParent(symbolNode, node);
+      if (filterTest(symbolNode)) attachToParent(symbolNode, node);
     }
-    // build parent node and attach to parent
-    getOrMakeParentNode(node);
+    // build parent node and attach file to parent,
+    // unless we filtered out every symbol belonging to this file
+    if (node.children.length > 0) getOrMakeParentNode(node);
   }
 
   // build parents for the directories until reaching the root node
@@ -555,24 +588,32 @@ function makeTree(symbols, getPath, sep) {
 /**
  * Assemble a tree when this worker receives a message.
  * @param {MessageEvent} event Event for when this worker receives a message.
- * @param {object} event.data Event data from the UI thread.
- * @param {string} event.data.treeData Stringified JSON representing the symbol
- * tree as a flat list of files.
- * @param {string} event.data.sep Path seperator used to split file paths, such
- * as '/'.
- * @param {string} event.data.filters Query string used to filter the resulting
- * tree.
  */
 self.onmessage = event => {
-  /** @type {{tree:DataFile,filters:string}} JSON data parsed from string */
-  const {tree, filters} = JSON.parse(event.data);
-  const params = new URLSearchParams(filters);
+  /**
+   * @type {{tree:DataFile,options:string}} JSON data parsed from a string
+   * supplied by the UI thread. Includes JSON representing the symbol tree as a
+   * flat list of files, and options represented as a query string.
+   */
+  const {tree, options} = JSON.parse(event.data);
 
-  const rootNode = makeTree(
-    tree.file_nodes,
-    s => tree.source_paths[s[_KEYS.SOURCE_PATH_INDEX]],
-    params.get('sep') || '/'
-  );
+  const params = new URLSearchParams(options);
+  const sep = params.get('sep') || '/';
+  const methodCountMode = params.has('method_count');
+  let typeFilter;
+  if (methodCountMode) typeFilter = new Set('m');
+  else {
+    const types = params.getAll('types');
+    typeFilter = new Set(types.length === 0 ? 'bdrtv*xmpPo' : types);
+  }
+
+  const rootNode = makeTree({
+    symbols: tree.file_nodes,
+    sep,
+    methodCountMode,
+    getPath: s => tree.source_paths[s[_KEYS.SOURCE_PATH_INDEX]],
+    filterTest: s => typeFilter.has(s.type),
+  });
 
   // @ts-ignore
   self.postMessage(rootNode);
@@ -585,7 +626,7 @@ self.onmessage = event => {
 
   /**
    * Displays the given data as a tree view
-   * @param {{data:TreeNode}} param0
+   * @param {{data:{root:TreeNode,meta:object}}} param0
    */
   worker.onmessage = ({data}) => {
     const root = newTreeElement(data);
@@ -599,13 +640,13 @@ self.onmessage = event => {
 
   /**
    * Loads the tree data given on a worker thread and replaces the tree view in
-   * the UI once complete. Uses query string as state for the filter.
+   * the UI once complete. Uses query string as state for the options.
    * @param {string} treeData JSON string to be parsed on the worker thread.
    */
   function loadTree(treeData) {
     // Post as a JSON string for better performance
     worker.postMessage(
-      `{"tree":${treeData}, "filters":"${location.search.slice(1)}"}`
+      `{"tree":${treeData}, "options":"${location.search.slice(1)}"}`
     );
   }
 
