@@ -1,0 +1,16 @@
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.toggle-options:focus {
+  animation: spin 0.3s ease;
+}
+.show-options .toggle-options {
+  animation-direction: reverse;
+}
