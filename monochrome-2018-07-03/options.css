@@ -150,7 +150,6 @@ input[type='checkbox'] {
   left: 0;
 }
 .checkbox-label::after {
-  display: none;
   width: 4px;
   height: 9px;
   left: 6px;
@@ -158,12 +157,13 @@ input[type='checkbox'] {
   border-top-width: 0;
   border-left-width: 0;
   transform: rotate(45deg);
+  opacity: 0;
 }
 input[type='checkbox']:checked + .checkbox-label {
   color: #1a73e8;
 }
 input[type='checkbox']:checked + .checkbox-label::after {
-  display: block;
+  opacity: 1;
 }
 input[type='checkbox']:disabled + .checkbox-label {
   color: #80868b;

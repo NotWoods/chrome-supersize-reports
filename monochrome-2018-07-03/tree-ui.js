@@ -194,9 +194,9 @@
 }
 
 {
-  const _progress = document.getElementById('progress')
   // We use a worker to keep large tree creation logic off the UI thread
   const worker = new Worker('tree-worker.js');
+  const _progress = document.getElementById('progress');
 
   /**
    * Displays the given data as a tree view

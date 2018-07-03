@@ -166,6 +166,12 @@ function createNode(options, sep) {
   };
 }
 
+/**
+ * Class used to build a tree from a list of symbol objects.
+ * Add each file node using `addFileEntry()`, then call `build()` to finalize
+ * the tree and return the root node. The in-progress tree can be obtained from
+ * the `rootNode` property.
+ */
 class TreeBuilder {
   /**
    * @param {object} options
@@ -197,6 +203,7 @@ class TreeBuilder {
    * based in the idPath and the path seperator. If the parent doesn't yet
    * exist, one is created and stored in the parents map.
    * @param {TreeNode} node
+   * @private
    */
   _getOrMakeParentNode(node) {
     // Get idPath of this node's parent.
@@ -273,26 +280,6 @@ class TreeBuilder {
 
     return this.rootNode;
   }
-}
-
-/**
- * Build a tree from a list of symbol objects.
- * @param {object} options
- * @param {Iterable<FileEntry> | AsyncIterator<FileEntry>} options.symbols List of basic symbols.
- * @param {(file: FileEntry) => string} options.getPath Called to get the id
- * path of a symbol's file.
- * @param {(symbol: TreeNode) => boolean} options.filterTest Called to see if
- * a symbol should be included. If a symbol fails the test, it will not be
- * attached to the tree.
- * @param {string} options.sep Path seperator used to find parent names.
- * @param {boolean} options.methodCountMode If true, return number of dex
- * methods instead of size.
- * @returns {Promise<TreeNode>} Root node of the new tree
- */
-async function makeTree(options) {
-  const builder = new TreeBuilder(options);
-  for (const fileNode of options.symbols) builder.addFileEntry(fileNode);
-  return builder.build();
 }
 
 /**
