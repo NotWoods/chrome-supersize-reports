@@ -48,6 +48,8 @@
   const _leafTemplate = document.getElementById('treeitem');
   const _treeTemplate = document.getElementById('treefolder');
 
+  const _symbolTree = document.getElementById('symboltree');
+
   /** HTMLCollection of all nodes. Updates itself automatically. */
   const _liveNodeList = document.getElementsByClassName('node');
 
@@ -119,14 +121,14 @@
    * Sets focus to a new tree element while updating the element that last had
    * focus. The tabindex property is used to avoid needing to tab through every
    * single tree item in the page to reach other areas.
-   * @param {number} index Index of tree node in `_liveNodeList`
+   * @param {number | HTMLElement} el Index of tree node in `_liveNodeList`
    */
-  function _focusTreeElement(index) {
+  function _focusTreeElement(el) {
     const lastFocused = document.activeElement;
     if (_uiNodeData.has(lastFocused)) {
       lastFocused.tabIndex = -1;
     }
-    const element = _liveNodeList[index];
+    const element = typeof el === 'number' ? _liveNodeList[el] : el;
     if (element != null) {
       element.tabIndex = 0;
       element.focus();
@@ -162,13 +164,10 @@
    * @param {KeyboardEvent} event
    */
   function _handleKeyNavigation(event) {
-    const link = event.currentTarget;
-    const data = _uiNodeData.get(link);
-    const isLeaf = data.children.length === 0;
-    const isExpanded =
-      !isLeaf && link.parentElement.getAttribute('aria-expanded') === 'true';
+    const link = event.target;
     const focusIndex = Array.prototype.indexOf.call(_liveNodeList, link);
 
+    /** Focus the tree element immediately following this one */
     function _focusNext() {
       if (focusIndex > -1 && focusIndex < _liveNodeList.length - 1) {
         event.preventDefault();
@@ -176,14 +175,16 @@
       }
     }
 
-    function _toggle(element = link) {
+    /** Open or close the tree element */
+    function _toggle() {
       event.preventDefault();
-      element.click();
+      link.click();
     }
 
+    /** Focus the tree element at `index` if it starts with `char` */
     function _focusIfStartsWith(char, index) {
       const data = _uiNodeData.get(_liveNodeList[index]);
-      if (data.shortName.startsWith(event.key)) {
+      if (data.shortName.startsWith(char)) {
         event.preventDefault();
         _focusTreeElement(index);
         return true;
@@ -210,7 +211,9 @@
         break;
       // If closed tree, open tree. Otherwise, move to first child.
       case 'ArrowRight':
-        if (!isLeaf) {
+        if (_uiNodeData.get(link).children.length !== 0) {
+          const isExpanded =
+            link.parentElement.getAttribute('aria-expanded') === 'true';
           if (isExpanded) {
             _focusNext();
           } else {
@@ -218,21 +221,19 @@
           }
         }
         break;
-      // If open tree, close tree. Otherwise, move to parent.
+      // If opened tree, close tree. Otherwise, move to parent.
       case 'ArrowLeft':
-        if (isExpanded) {
-          _toggle();
-        } else {
-          let parentIndex = focusIndex;
-          while (
-            parentIndex > -1 &&
-            _uiNodeData.get(_liveNodeList[parentIndex]) !== data.parent
-          ) {
-            parentIndex--;
-          }
-          if (parentIndex > -1) {
-            event.preventDefault();
-            _focusTreeElement(parentIndex);
+        {
+          const isExpanded =
+            link.parentElement.getAttribute('aria-expanded') === 'true';
+          if (isExpanded) {
+            _toggle();
+          } else {
+            const groupList = link.parentElement.parentElement;
+            if (groupList.getAttribute('role') === 'group') {
+              event.preventDefault();
+              _focusTreeElement(groupList.previousElementSibling);
+            }
           }
         }
         break;
@@ -294,7 +295,6 @@
       : _setSizeContents;
     _setSize(element.querySelector('.size'), data.size);
 
-    link.addEventListener('keydown', _handleKeyNavigation);
     if (!isLeaf) {
       link.addEventListener('click', _toggleTreeElement);
     }
@@ -311,7 +311,10 @@
     }
   });
 
+  _symbolTree.addEventListener('keydown', _handleKeyNavigation);
+
   self.newTreeElement = newTreeElement;
+  self._symbolTree = _symbolTree;
 }
 
 {
@@ -345,7 +348,7 @@
 /**
  * @typedef {object} FileEntry JSON object representing a single file and its
  * symbols.
- * @prop {number} p - source_path_index
+ * @prop {number} p - source_path
  * @prop {number} c - component_index
  * @prop {Array<{n:string,b:number,t:string}>} s - Symbols belonging to this
  * node. Array of objects.
@@ -370,7 +373,7 @@
  * @enum {string}
  */
 const _KEYS = {
-  SOURCE_PATH_INDEX: 'p',
+  SOURCE_PATH: 'p',
   COMPONENT_INDEX: 'c',
   FILE_SYMBOLS: 's',
   SYMBOL_NAME: 'n',
@@ -418,7 +421,7 @@ function combineSingleChildNodes(node, sep) {
     // If there is only 1 child and its the same type, merge it in.
     if (node.children.length === 1 && node.type === child.type) {
       // size & type should be the same, so don't bother copying them.
-      node.shortName += sep + child.shortName;
+      node.shortName += sep + '\u200b' + child.shortName;
       node.idPath = child.idPath;
       node.children = child.children;
       // Search children of this node.
@@ -611,7 +614,7 @@ self.onmessage = event => {
     symbols: tree.file_nodes,
     sep,
     methodCountMode,
-    getPath: s => tree.source_paths[s[_KEYS.SOURCE_PATH_INDEX]],
+    getPath: s => s[_KEYS.SOURCE_PATH],
     filterTest: s => typeFilter.has(s.type),
   });
 
@@ -635,7 +638,7 @@ self.onmessage = event => {
     node.click();
     node.tabIndex = 0;
 
-    dom.replace(document.getElementById('symboltree'), root);
+    dom.replace(_symbolTree, root);
   };
 
   /**
