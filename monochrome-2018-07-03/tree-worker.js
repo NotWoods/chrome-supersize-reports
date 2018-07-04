@@ -334,35 +334,54 @@ self.onmessage = async event => {
     filterTest: s => typeFilter.has(s.type),
   });
 
-  let response = await responsePromise;
-  if (response.bodyUsed) {
-    response = await fetch('data.ndjson');
-  }
-
+  /** Object from the first line of the data file */
   let meta = null;
-  function postPartialTree() {
-    let percent = 0;
-    if (meta != null) {
-      // Include percentage of data loaded.
-      // Use 0.1 as the smallest value, as 0 will indicate the response hasn't
-      // resolved yet.
-      percent = Math.max(builder.rootNode.size / meta.total, 0.1);
+
+  /**
+   * Post data to the UI thread. Defaults will be used for the root and percent
+   * values if not specified.
+   * @param {{root?:TreeNode,percent?:number,error?:Error}} data Default data
+   * values to post.
+   */
+  function postToUi(data = {}) {
+    let {percent} = data;
+    if (percent == null) {
+      if (meta == null) {
+        percent = 0;
+      } else {
+        percent = Math.max(builder.rootNode.size / meta.total, 0.1);
+      }
     }
-    self.postMessage({root: builder.rootNode, percent});
+
+    const message = {root: data.root || builder.rootNode, percent};
+    if (data.error) {
+      message.error = data.error.message;
+    }
+
+    self.postMessage(message);
   }
 
-  // Post partial state every 5 seconds
-  const interval = setInterval(postPartialTree, 5000);
-  for await (const line of newlineDelimtedJsonStream(response.body)) {
-    if (meta == null) {
-      meta = line;
-      postPartialTree();
-    } else {
-      builder.addFileEntry(line);
+  try {
+    let response = await responsePromise;
+    if (response.bodyUsed) {
+      response = await fetch('data.ndjson');
     }
-  }
-  clearInterval(interval);
 
-  // @ts-ignore
-  self.postMessage({root: builder.build(), percent: 1});
+    // Post partial state every 5 seconds
+    const interval = setInterval(postToUi, 5000);
+    for await (const line of newlineDelimtedJsonStream(response.body)) {
+      if (meta == null) {
+        meta = line;
+        postToUi();
+      } else {
+        builder.addFileEntry(line);
+      }
+    }
+    clearInterval(interval);
+  } catch (error) {
+    console.error(error);
+    postToUi({error});
+  }
+
+  postToUi({root: builder.build(), percent: 1});
 };

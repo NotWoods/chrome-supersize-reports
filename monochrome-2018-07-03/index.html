@@ -53,6 +53,12 @@
         .appbar-progress[value="1"]::-webkit-progress-value {
             transition-duration: 0.2s;
         }
+        .error.appbar-progress::-webkit-progress-bar {
+            background: #ea433599;
+        }
+        .error.appbar-progress::-webkit-progress-value {
+            background: #d93025;
+        }
 
         .options {
             display: none;
@@ -168,7 +174,6 @@
         }
     </style>
     <link rel="preload" href="tree-worker.js" as="worker">
-    <link rel="preload" href="data.ndjson" as="fetch">
     <link rel="stylesheet" href="options.css">
     <script defer src="state.js"></script>
     <script defer async src="tree-ui.js"></script>
@@ -300,19 +305,18 @@
                 />
             </svg>
         </div>
-
         <template id="treefolder">
             <li role="treeitem" aria-expanded="false">
-                <a class="node" href="#">
+                <a class="node" href="#" tabindex="-1">
                     <span class="symbol-name"></span>
                     <span class="size"></span>
                 </a>
-                <ul role="group" hidden></ul>
+                <ul role="group"></ul>
             </li>
         </template>
         <template id="treeitem">
             <li role="treeitem">
-                <span class="node">
+                <span class="node" tabindex="-1">
                     <span class="symbol-name"></span>
                     <span class="size"></span>
                 </span>
