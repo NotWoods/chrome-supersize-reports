@@ -58,6 +58,7 @@ const _KEYS = {
 
 const _NO_NAME = '(No path)';
 const _DIRECTORY_TYPE = 'D';
+const _COMPONENT_TYPE = 'C';
 const _FILE_TYPE = 'F';
 
 /**
@@ -68,8 +69,9 @@ const _FILE_TYPE = 'F';
  * @param {string} sep Path seperator, such as '/'.
  */
 function basename(path, sep) {
-  const idx = path.lastIndexOf(sep);
-  return path.substring(idx + 1);
+  const sepIndex = path.lastIndexOf(sep);
+  const pathIndex = path.lastIndexOf('/');
+  return path.substring(Math.max(sepIndex, pathIndex) + 1);
 }
 
 /**
@@ -79,33 +81,9 @@ function basename(path, sep) {
  * @param {string} sep Path seperator, such as '/'.
  */
 function dirname(path, sep) {
-  const idx = path.lastIndexOf(sep);
-  return path.substring(0, idx);
-}
-
-/**
- * Collapse "java"->"com"->"google" into "java/com/google". Nodes will only be
- * collapsed if they are the same type, most commonly by merging directories.
- * @param {TreeNode} node Node to potentially collapse. Will be modified by
- * this function.
- * @param {string} sep Path seperator, such as '/'.
- */
-function combineSingleChildNodes(node, sep) {
-  if (node.children.length > 0) {
-    const [child] = node.children;
-    // If there is only 1 child and its the same type, merge it in.
-    if (node.children.length === 1 && node.type === child.type) {
-      // size & type should be the same, so don't bother copying them.
-      node.shortName += sep + '\u200b' + child.shortName;
-      node.idPath = child.idPath;
-      node.children = child.children;
-      // Search children of this node.
-      combineSingleChildNodes(node, sep);
-    } else {
-      // Search children of this node.
-      node.children.forEach(child => combineSingleChildNodes(child, sep));
-    }
-  }
+  const sepIndex = path.lastIndexOf(sep);
+  const pathIndex = path.lastIndexOf('/');
+  return path.substring(0, Math.max(sepIndex, pathIndex));
 }
 
 /**
@@ -187,11 +165,11 @@ class TreeBuilder {
   constructor(options) {
     this._getPath = options.getPath;
     this._filterTest = options.filterTest;
-    this._sep = options.sep;
-    this._methodCountMode = options.methodCountMode;
+    this._sep = options.sep || '/';
+    this._methodCountMode = options.methodCountMode || false;
 
     this.rootNode = createNode(
-      {idPath: '/', shortName: '/', type: _DIRECTORY_TYPE},
+      {idPath: this._sep, shortName: this._sep, type: _DIRECTORY_TYPE},
       this._sep
     );
     /** @type {Map<string, TreeNode>} Cache for directory nodes */
@@ -220,8 +198,13 @@ class TreeBuilder {
       // get parent from cache if it exists, otherwise create it
       parentNode = this._parents.get(parentPath);
       if (parentNode == null) {
+        const useAltType =
+          node.idPath.lastIndexOf(this._sep) > node.idPath.lastIndexOf('/');
         parentNode = createNode(
-          {idPath: parentPath, type: _DIRECTORY_TYPE},
+          {
+            idPath: parentPath,
+            type: useAltType ? _COMPONENT_TYPE : _DIRECTORY_TYPE,
+          },
           this._sep
         );
         this._parents.set(parentPath, parentNode);
@@ -242,9 +225,13 @@ class TreeBuilder {
    */
   addFileEntry(fileNode) {
     // make path for this
+    const filePath = fileNode[_KEYS.SOURCE_PATH];
     const idPath = this._getPath(fileNode);
     // make node for this
-    const node = createNode({idPath, type: _FILE_TYPE}, this._sep);
+    const node = createNode(
+      {idPath, shortName: basename(filePath, this._sep), type: _FILE_TYPE},
+      this._sep
+    );
     // build child nodes for this file's symbols and attach to self
     for (const symbol of fileNode[_KEYS.FILE_SYMBOLS]) {
       const size = this._methodCountMode ? 1 : symbol[_KEYS.SIZE];
@@ -273,8 +260,6 @@ class TreeBuilder {
    * Finalize the creation of the tree and return the root node.
    */
   build() {
-    // Collapse nodes such as "java"->"com"->"google" into "java/com/google".
-    combineSingleChildNodes(this.rootNode, this._sep);
     // Sort the tree so that larger items are higher.
     sortTree(this.rootNode);
 
@@ -318,7 +303,7 @@ let responsePromise = fetch('data.ndjson');
  */
 self.onmessage = async event => {
   const params = new URLSearchParams(event.data);
-  const sep = params.get('sep') || '/';
+  const groupBy = params.get('group_by') || 'source_path';
   const methodCountMode = params.has('method_count');
   let typeFilter;
   if (methodCountMode) typeFilter = new Set('m');
@@ -327,15 +312,29 @@ self.onmessage = async event => {
     typeFilter = new Set(types.length === 0 ? 'bdrtv*xmpPo' : types);
   }
 
-  const builder = new TreeBuilder({
-    sep,
-    methodCountMode,
-    getPath: s => s[_KEYS.SOURCE_PATH],
-    filterTest: s => typeFilter.has(s.type),
-  });
-
   /** Object from the first line of the data file */
   let meta = null;
+
+  const getPathMap = {
+    component(fileEntry) {
+      const component = meta.components[fileEntry[_KEYS.COMPONENT_INDEX]];
+      const path = getPathMap.source_path(fileEntry);
+      return (component || '(No component)') + '>' + path;
+    },
+    source_path(fileEntry) {
+      return fileEntry[_KEYS.SOURCE_PATH];
+    },
+  };
+  const sepMap = {
+    component: '>',
+  };
+
+  const builder = new TreeBuilder({
+    sep: sepMap[groupBy],
+    methodCountMode,
+    getPath: getPathMap[groupBy],
+    filterTest: s => typeFilter.has(s.type),
+  });
 
   /**
    * Post data to the UI thread. Defaults will be used for the root and percent
@@ -358,6 +357,7 @@ self.onmessage = async event => {
       message.error = data.error.message;
     }
 
+    // @ts-ignore
     self.postMessage(message);
   }
 
