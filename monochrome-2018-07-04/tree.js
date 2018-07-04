@@ -30,6 +30,7 @@
    */
   const _SYMBOL_ICONS = {
     D: _icons.querySelector('.foldericon'),
+    C: _icons.querySelector('.componenticon'),
     F: _icons.querySelector('.fileicon'),
     b: _icons.querySelector('.bssicon'),
     d: _icons.querySelector('.dataicon'),
@@ -264,6 +265,7 @@ const _KEYS = {
 
 const _NO_NAME = '(No path)';
 const _DIRECTORY_TYPE = 'D';
+const _COMPONENT_TYPE = 'C';
 const _FILE_TYPE = 'F';
 
 /**
@@ -401,8 +403,13 @@ function makeTree(options) {
       // get parent from cache if it exists, otherwise create it
       parentNode = parents.get(parentPath);
       if (parentNode == null) {
+        const useAltType =
+          node.idPath.lastIndexOf(sep) >= node.idPath.lastIndexOf('/');
         parentNode = createNode(
-          {idPath: parentPath, type: _DIRECTORY_TYPE},
+          {
+            idPath: parentPath,
+            type: useAltType ? _COMPONENT_TYPE : _DIRECTORY_TYPE,
+          },
           sep
         );
         parents.set(parentPath, parentNode);
@@ -482,7 +489,7 @@ self.onmessage = event => {
     component(fileEntry) {
       const component = tree.components[fileEntry[_KEYS.COMPONENT_INDEX]];
       const path = getPathMap.source_path(fileEntry);
-      return component ? component + '>' + path : path;
+      return (component || '(No component)') + '>' + path;
     },
     source_path(fileEntry) {
       return fileEntry[_KEYS.SOURCE_PATH];
