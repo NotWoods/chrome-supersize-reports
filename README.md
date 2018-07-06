@@ -10,6 +10,7 @@ Demo HTML reports from Chromium's supersize analysis tool
 - [monochrome-2018-07-03 _(Large data)_](monochrome-2018-07-03)
 - [monochrome-2018-07-04 _(Group by component)_](monochrome-2018-07-04)
 - [monochrome-2018-07-05 _(Filters)_](monochrome-2018-07-05)
+- [monochrome-2018-07-06 _(Symbol type breakdown)_](monochrome-2018-07-06)
 
 ## See also:
 - [supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)

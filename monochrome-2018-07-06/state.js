@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @ts-check
 'use strict';
 
 /**
@@ -61,7 +62,7 @@ function _initState() {
     get(key, options = {}) {
       const [val = null] = state.getAll(key, {
         default: options.default ? [options.default] : null,
-        valid: options.value,
+        valid: options.valid,
       });
       return val;
     },
@@ -157,7 +158,7 @@ function _startListeners(state) {
    */
   function _toggleOptions() {
     const openedOptions = document.body.classList.toggle('show-options');
-    localStorage.setItem('show-options', openedOptions);
+    localStorage.setItem('show-options', openedOptions.toString());
   }
   for (const button of document.getElementsByClassName('toggle-options')) {
     button.addEventListener('click', _toggleOptions);
