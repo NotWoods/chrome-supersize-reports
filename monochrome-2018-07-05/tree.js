@@ -560,13 +560,12 @@ function makeTree(options) {
     );
     // build child nodes for this file's symbols and attach to self
     for (const symbol of fileNode[_KEYS.FILE_SYMBOLS]) {
-      const size = methodCountMode ? 1 : symbol[_KEYS.SIZE];
       const symbolNode = createNode(
         {
           idPath: idPath + ':' + symbol[_KEYS.SYMBOL_NAME],
           shortName: symbol[_KEYS.SYMBOL_NAME],
-          size,
-          type: symbol[_KEYS.TYPE],
+          size: methodCountMode ? 1 : symbol[_KEYS.SIZE],
+          type: _KNOWN_TYPES.has(symbol[_KEYS.TYPE]) ? symbol[_KEYS.TYPE] : 'o',
         },
         sep
       );
@@ -618,14 +617,7 @@ function parseOptions(options) {
   /** Ensure symbol size is past the minimum */
   const checkSize = s => Math.abs(s.size) >= minSymbolSize;
   /** Ensure the symbol size wasn't filtered out */
-  const checkType = s => {
-    if (typeFilter.has(s.type)) {
-      return true;
-    } else {
-      // If 'other' is a valid type, include unknown types
-      return typeFilter.has('o') && !_KNOWN_TYPES.has(s.type);
-    }
-  };
+  const checkType = s => typeFilter.has(s.type);
   const filters = [checkSize, checkType];
 
   if (includeRegex) {
@@ -634,7 +626,7 @@ function parseOptions(options) {
   }
   if (excludeRegex) {
     const regex = new RegExp(excludeRegex);
-    filters.push(s => regex.test(s.idPath));
+    filters.push(s => !regex.test(s.idPath));
   }
 
   /**
@@ -718,11 +710,11 @@ self.onmessage = event => {
     );
   }
 
+  form.addEventListener('change', () => loadTree(tree_data));
   form.addEventListener('submit', event => {
     event.preventDefault();
-    state.setAll(new FormData(event.currentTarget));
     loadTree(tree_data);
-  })
+  });
 
   self.loadTree = loadTree;
 }
