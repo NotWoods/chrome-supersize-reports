@@ -16,9 +16,9 @@ const worker = new TreeWorker('tree-worker.js');
 {
   // Templates for tree nodes in the UI.
   /** @type {HTMLTemplateElement} Template for leaves in the tree */
-  const _leafTemplate = document.getElementById('treeitem');
+  const _leafTemplate = document.getElementById('treenode-symbol');
   /** @type {HTMLTemplateElement} Template for trees */
-  const _treeTemplate = document.getElementById('treefolder');
+  const _treeTemplate = document.getElementById('treenode-container');
 
   const _symbolTree = document.getElementById('symboltree');
 
@@ -42,7 +42,7 @@ const worker = new TreeWorker('tree-worker.js');
   const _uiNodeData = new WeakMap();
 
   /**
-   * Create the contents for the size element of a tree node..
+   * Create the contents for the size element of a tree node.
    * If in method count mode, size instead represents the amount of methods in
    * the node. In this case, don't append a unit at the end.
    * @param {number} methodCount Number of methods to use for the count text
@@ -339,10 +339,7 @@ const worker = new TreeWorker('tree-worker.js');
     );
 
     link.addEventListener('mouseover', event =>
-      displayInfocard(
-        _uiNodeData.get(event.currentTarget),
-        state.has('method_count') ? _getMethodCountContents : _getSizeContents
-      )
+      displayInfocard(_uiNodeData.get(event.currentTarget), _getSizeLabels)
     );
     if (!isLeaf) {
       link.addEventListener('click', _toggleTreeElement);
@@ -381,16 +378,16 @@ const worker = new TreeWorker('tree-worker.js');
   const _sizeHeader = document.getElementById('size-header');
 
   /** Displays the given data as a tree view */
-  worker.onProgress(({root, percent, sizeHeader, error}) => {
+  worker.setOnLoadHandler(({root, percent, sizeHeader, error}) => {
     let rootElement = null;
     if (root) {
       /** @type {DocumentFragment} */
       rootElement = newTreeElement(root);
       /** @type {HTMLAnchorElement} */
-      const node = rootElement.querySelector('.node');
+      const link = rootElement.querySelector('.node');
       // Expand the root UI node
-      node.click();
-      node.tabIndex = 0;
+      link.click();
+      link.tabIndex = 0;
     }
 
     requestAnimationFrame(() => {

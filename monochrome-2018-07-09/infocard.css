@@ -66,6 +66,8 @@
 .type-pie-info {
   grid-area: icon;
   align-self: center;
+  height: 80px;
+  width: 80px;
   background: #5f6368;
   border-radius: 50%;
 }

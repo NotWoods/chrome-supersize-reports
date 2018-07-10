@@ -13,8 +13,8 @@
 
 {
   // Infocard elements
-  const _containerInfocard = document.getElementById('infocardcontainer');
-  const _symbolInfocard = document.getElementById('infocardsymbol');
+  const _containerInfocard = document.getElementById('infocard-container');
+  const _symbolInfocard = document.getElementById('infocard-symbol');
 
   const _tableBody = _containerInfocard.querySelector('tbody');
 
@@ -41,6 +41,17 @@
     o: _containerInfocard.querySelector('.other-info'),
   };
 
+  const _CANVAS_RADIUS = 40;
+
+  /** Update the DPI of the canvas for zoomed in and high density screens. */
+  function _updateCanvasDpi() {
+    _ctx.canvas.height = _CANVAS_RADIUS * 2 * devicePixelRatio;
+    _ctx.canvas.width = _CANVAS_RADIUS * 2 * devicePixelRatio;
+    _ctx.scale(devicePixelRatio, devicePixelRatio);
+  }
+  _updateCanvasDpi();
+  window.addEventListener('resize', _updateCanvasDpi);
+
   /**
    * Draw a slice of a pie chart.
    * @param {CanvasRenderingContext2D} ctx
@@ -60,7 +71,7 @@
     ctx.beginPath();
     ctx.moveTo(40, 40);
     // Move cursor to start of arc then draw arc
-    ctx.arc(40, 40, 40, angleStart, angleEnd);
+    ctx.arc(40, 40, _CANVAS_RADIUS, angleStart, angleEnd);
     // Move cursor back to center
     ctx.closePath();
     ctx.fill();

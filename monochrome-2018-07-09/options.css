@@ -86,6 +86,8 @@ input[type='number'],
 select {
   box-sizing: border-box;
   -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   font: inherit;
   background: transparent;
   border: 0;
@@ -132,7 +134,15 @@ select:focus + .select-label::after {
 /** <input type='checkbox' or 'radio'> elements */
 input[type='checkbox'],
 input[type='radio'] {
-  display: none;
+  position: absolute;
+  margin: 0;
+  height: 18px;
+  width: 18px;
+  opacity: 0;
+}
+.checkbox-wrapper,
+.radio-wrapper {
+  position: relative;
 }
 .checkbox-label,
 .radio-label {
@@ -192,6 +202,11 @@ input[type='radio']:checked + .radio-label::after {
 input[type='checkbox']:disabled + .checkbox-label,
 input[type='radio']:disabled + .radio-label {
   color: #80868b;
+}
+input[type='checkbox']:focus + .checkbox-label,
+input[type='radio']:focus + .radio-label {
+  outline: #2e3436 dotted 1px;
+  outline: -webkit-focus-ring-color auto 5px;
 }
 
 /** Tweaks for smaller screen sizes */

@@ -104,7 +104,17 @@ function createNode(options, sep) {
 }
 
 /**
- * @param {TreeNode} node
+ * Formats a tree node by removing references to its desendants and ancestors.
+ *
+ * Only children up to `depth` will be kept, and deeper children will be
+ * replaced with `null` to indicate that there were children by they were
+ * removed.
+ *
+ * Leaves will no children will always have an empty children array.
+ * If a tree has only 1 child, it is kept as the UI will expand chain of single
+ * children in the tree.
+ * @param {TreeNode} node Node to format
+ * @param {number} depth How many levels of children to keep.
  */
 function formatNode(node, depth = 1) {
   const childDepth = depth - 1;
@@ -135,10 +145,10 @@ function formatNode(node, depth = 1) {
 class TreeBuilder {
   /**
    * @param {object} options
-   * @param {(file: FileEntry) => string} options.getPath Called to get the id
-   * path of a symbol's file.
-   * @param {(symbol: TreeNode) => boolean} options.filterTest Called to see if
-   * a symbol should be included. If a symbol fails the test, it will not be
+   * @param {(fileEntry: FileEntry) => string} options.getPath Called to get the
+   * id path of a symbol's file entry.
+   * @param {(symbolNode: TreeNode) => boolean} options.filterTest Called to see
+   * if a symbol should be included. If a symbol fails the test, it will not be
    * attached to the tree.
    * @param {string} options.sep Path seperator used to find parent names.
    * @param {boolean} options.methodCountMode If true, return number of dex
@@ -245,14 +255,14 @@ class TreeBuilder {
    * symbols that belong to that file. Create a tree node for each file with
    * tree nodes for that file's symbols attached. Afterwards attach that node to
    * its parent directory node, or create it if missing.
-   * @param {FileEntry} fileNode
+   * @param {FileEntry} fileEntry File entry from data file
    */
-  addFileEntry(fileNode) {
+  addFileEntry(fileEntry) {
     // make path for this
-    const filePath = fileNode[_KEYS.SOURCE_PATH];
-    const idPath = this._getPath(fileNode);
+    const filePath = fileEntry[_KEYS.SOURCE_PATH];
+    const idPath = this._getPath(fileEntry);
     // make node for this
-    const node = createNode(
+    const fileNode = createNode(
       {
         idPath,
         shortName: basename(filePath, this._sep),
@@ -261,7 +271,7 @@ class TreeBuilder {
       this._sep
     );
     // build child nodes for this file's symbols and attach to self
-    for (const symbol of fileNode[_KEYS.FILE_SYMBOLS]) {
+    for (const symbol of fileEntry[_KEYS.FILE_SYMBOLS]) {
       const symbolNode = createNode(
         {
           // Join file path to symbol name with a ":"
@@ -278,13 +288,13 @@ class TreeBuilder {
       );
 
       if (this._filterTest(symbolNode)) {
-        TreeBuilder._attachToParent(symbolNode, node);
+        TreeBuilder._attachToParent(symbolNode, fileNode);
       }
     }
     // unless we filtered out every symbol belonging to this file,
-    if (node.children.length > 0) {
+    if (fileNode.children.length > 0) {
       // build all ancestor nodes for this file
-      let orphanNode = node;
+      let orphanNode = fileNode;
       while (orphanNode.parent == null && orphanNode !== this.rootNode) {
         orphanNode = this._getOrMakeParentNode(orphanNode);
       }
@@ -317,9 +327,7 @@ class TreeBuilder {
     }
 
     const [shortNameToFind] = idPathList;
-    const child = node.children.find(
-      n => shortName(n) === shortNameToFind
-    );
+    const child = node.children.find(n => shortName(n) === shortNameToFind);
 
     return this._find(idPathList.slice(1), child);
   }
@@ -364,6 +372,7 @@ async function* newlineDelimtedJsonStream(response) {
   // Are streams supported?
   if (response.body) {
     const decoder = new TextDecoder();
+    const decodeOptions = {stream: true};
     const reader = response.body.getReader();
 
     let buffer = '';
@@ -373,16 +382,14 @@ async function* newlineDelimtedJsonStream(response) {
       if (done) break;
 
       // Convert binary values to text chunks.
-      const chunk = decoder.decode(value, {stream: true});
+      const chunk = decoder.decode(value, decodeOptions);
       buffer += chunk;
-      // If this chunk included a newline, turn the line into JSON
-      if (chunk.includes('\n')) {
-        const lines = buffer.split('\n');
-        [buffer] = lines.splice(lines.length - 1, 1);
+      // Split the chunk base on newlines, and turn each complete line into JSON
+      const lines = buffer.split('\n');
+      [buffer] = lines.splice(lines.length - 1, 1);
 
-        for (const line of lines) {
-          yield JSON.parse(line);
-        }
+      for (const line of lines) {
+        yield JSON.parse(line);
       }
     }
   } else {
@@ -438,10 +445,10 @@ function parseOptions(options) {
 
   /**
    * Check that a symbol node passes all the filters in the filters array.
-   * @param {TreeNode} symbol
+   * @param {TreeNode} symbolNode
    */
-  function filterTest(symbol) {
-    return filters.every(fn => fn(symbol));
+  function filterTest(symbolNode) {
+    return filters.every(fn => fn(symbolNode));
   }
 
   return {groupBy, methodCountMode, filterTest};
@@ -520,17 +527,20 @@ async function buildTree(options, callback) {
   try {
     let response = await responsePromise;
     if (response.bodyUsed) {
+      // We start the first request when the worker loads so the response is
+      // ready earlier. Subsequent requests (such as when filters change) must
+      // re-fetch the data file from the cache or network.
       response = await fetch('data.ndjson');
     }
 
-    // Post partial state every 5 seconds
+    // Post partial state every second
     interval = setInterval(postToUi, 1000);
-    for await (const line of newlineDelimtedJsonStream(response)) {
+    for await (const dataObj of newlineDelimtedJsonStream(response)) {
       if (meta == null) {
-        meta = line;
+        meta = dataObj;
         postToUi();
       } else {
-        builder.addFileEntry(line);
+        builder.addFileEntry(dataObj);
       }
     }
     clearInterval(interval);
@@ -571,5 +581,6 @@ self.onmessage = async event => {
   } catch (err) {
     // @ts-ignore
     self.postMessage({id, error: err.message});
+    throw err;
   }
 };

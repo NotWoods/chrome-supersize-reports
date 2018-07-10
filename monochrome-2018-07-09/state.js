@@ -103,7 +103,7 @@ class TreeWorker {
    * @param {(data: TreeProgress) => void} callback Called when the worker
    * has some data to display. Complete when `progress` is 1.
    */
-  onProgress(callback) {
+  setOnLoadHandler(callback) {
     this._loadTreeCallback = callback;
   }
 
