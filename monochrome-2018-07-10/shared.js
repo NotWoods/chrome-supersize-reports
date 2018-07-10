@@ -83,6 +83,9 @@ const _SYMBOL_TYPE_SET = new Set('bdrtv*xmpP' + _OTHER_SYMBOL_TYPE);
 /** Name used by a directory created to hold symbols with no name. */
 const _NO_NAME = '(No path)';
 
+/** Key where type is stored in the query string state. */
+const _TYPE_STATE_KEY = 'type';
+
 /**
  * Returns shortName for a tree node.
  * @param {TreeNode} node

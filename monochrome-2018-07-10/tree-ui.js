@@ -146,6 +146,8 @@ const worker = new TreeWorker('tree-worker.js');
       element.setAttribute('aria-expanded', 'false');
       dom.replace(group, null);
     } else {
+      element.setAttribute('aria-expanded', 'true');
+
       let data = _uiNodeData.get(link);
       if (data == null || data.children == null) {
         const idPath = link.querySelector('.symbol-name').title;
@@ -164,7 +166,6 @@ const worker = new TreeWorker('tree-worker.js');
       // Update DOM
       requestAnimationFrame(() => {
         group.appendChild(newElementsFragment);
-        element.setAttribute('aria-expanded', 'true');
       });
     }
   }
@@ -356,11 +357,15 @@ const worker = new TreeWorker('tree-worker.js');
   });
 
   _symbolTree.addEventListener('keydown', _handleKeyNavigation);
-  _symbolTree.addEventListener('focusin', event =>
+  _symbolTree.addEventListener('focusin', event => {
     displayInfocard(
       _uiNodeData.get(event.target),
       state.has('method_count') ? _getMethodCountContents : _getSizeContents
-    )
+    );
+    event.currentTarget.parentElement.classList.add('focused');
+  });
+  _symbolTree.addEventListener('focusout', event =>
+    event.currentTarget.parentElement.classList.remove('focused')
   );
 
   self.newTreeElement = newTreeElement;
