@@ -1,6 +1,8 @@
 # chrome-supersize-reports
 Demo HTML reports from Chromium's supersize analysis tool
 
+<img src="icon.png" height="192" width="192">
+
 ## Links
 - [monochrome-2018-06-20 _(Protytype)_](monochrome-2018-06-20)
 - [monochrome-2018-06-26 _(MVP)_](monochrome-2018-06-26)
@@ -13,6 +15,7 @@ Demo HTML reports from Chromium's supersize analysis tool
 - [monochrome-2018-07-06 _(Symbol type breakdown)_](monochrome-2018-07-06)
 - [monochrome-2018-07-09](monochrome-2018-07-09)
 - [monochrome-2018-07-10](monochrome-2018-07-10)
+- [monochrome-2018-07-11](monochrome-2018-07-11)
 
 ## See also:
 - [supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
