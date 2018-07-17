@@ -3,6 +3,8 @@
 # chrome-supersize-reports
 Demo HTML reports from Chromium's supersize analysis tool.
 
+[FAQ](FAQ)
+
 [Supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
 is a tool for collecting, archiving, and analyzing Chrome on Android's binary size.
 It archives `.size` files on various builders so regressions can be quickly analyzed.
