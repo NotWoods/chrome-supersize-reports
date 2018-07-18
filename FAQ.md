@@ -1,15 +1,15 @@
 # Frequently Asked Questions
 
 - Usage
-  - How do I create a data file?
-  - What do the different folder and file colors mean?
-  - What does "Type", "Count", "Total size", and "Percent" refer to?
-  - Which keyboard shortcuts are supported?
+  - [How do I create a data file?](#how-do-i-create-a-data-file)
+  - [What do the different folder and file colors mean?](what-do-the-different-folder-and-file-colors-mean)
+  - [What does "Type", "Count", "Total size", and "Percent" refer to?](#what-does-type-count-total-size-and-percent-refer-to)
+  - [Which keyboard shortcuts are supported?](#which-keyboard-shortcuts-are-supported)
 - Symbols
-  - What do the different symbol types mean?
-  - What are "Other small" symbols for?
+  - [What are "Other entries"?](#what-are-other-entries)
+  - [What are "Other small" symbols for?](#what-are-other-small-symbols-for)
 - Filters
-  - What regular expressions syntax is supported?
+  - [What regular expressions syntax is supported?](#what-regular-expressions-syntax-is-supported)
 
 ## Usage
 
@@ -76,20 +76,9 @@ _*_ | Expand all sibling containers of the current node.
 
 ## Symbols
 
-### What do the different symbol types mean?
-Icon | Name | Description
----- | ---- | -----------
-| Uninitialized data (.bss) |
-| Initialized data (.data) |
-| Read-only data (.rodata) |
-| Code (.text) |
-| Vtable entries |
-| Generated Symbols (typeinfo, thunks, etc) |
-| Dex non-method entries |
-| Dex methods |
-| Locale Pak Entries |
-| Non-Locale Pak Entries |
-| Other Entries | Other types of symbols that don't fall in the above categories.
+### What are "Other entries"?
+The symbol type "Other entries" refers to symbols that don't fall in one of the
+defined symbol categories. This includes images and `.bin` files.
 
 ### What are "Other small" symbols for?
 To reduce the size of the generated data file, small symbols are omitted by
