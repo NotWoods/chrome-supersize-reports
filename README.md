@@ -29,6 +29,7 @@ Below is some sample output from the tool.
 - [monochrome-2018-07-11](monochrome-2018-07-11)
 - [monochrome-2018-07-12](monochrome-2018-07-12)
 - [monochrome-2018-07-17 _(Upload custom data)_](monochrome-2018-07-17)
+- [monochrome-2018-07-19 _(FAQ link)_](monochrome-2018-07-19)
 
 ## Source code
 Located in `//tools/binary_size/` in the Chromium repository.
