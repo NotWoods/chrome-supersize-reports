@@ -10,6 +10,7 @@
     <title>Binary Size Analysis</title>
     <script src="start-worker.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4285f4">
     <link href="https://fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,500" rel="stylesheet">
     <style>
         body {
@@ -205,10 +206,16 @@
     </style>
     <link rel="stylesheet" href="options.css">
     <link rel="icon" href="favicon.ico" sizes="16x16 32x32 256x256" type="image/x-icon">
+    <link rel="manifest" href="manifest.json">
     <script defer src="shared.js"></script>
     <script defer src="state.js"></script>
     <script defer src="infocard-ui.js"></script>
     <script defer src="tree-ui.js"></script>
+    <script defer async>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </head>
 
 <body>

@@ -311,10 +311,10 @@ input[type='file'] {
     width: calc(100% + 32px);
   }
 
-  .filled-button {
+  .text-button.with-icon {
     padding-right: 6px;
   }
-  .filled-button .label-text {
+  .text-button.with-icon .label-text {
     display: none;
   }
 }
