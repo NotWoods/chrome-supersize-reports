@@ -3,7 +3,7 @@
 # Chrome supersize reports
 Demo HTML reports from Chromium's supersize analysis tool.
 
-# [Demo](demo)
+[**Demo**](demo)
 
 [FAQ](FAQ)
 
@@ -17,6 +17,7 @@ with display a breakdown of the symbols in a `.size` file.
 Below is some sample output from the tool.
 
 ## Old versions
+- [**Current demo**](demo)
 - [monochrome-2018-07-19 _(FAQ link)_](monochrome-2018-07-19)
 - [monochrome-2018-07-17 _(Upload custom data)_](monochrome-2018-07-17)
 - [monochrome-2018-07-09](monochrome-2018-07-09)
