@@ -5,13 +5,13 @@
 // @ts-check
 'use strict';
 
-const cacheName = 'supersize-2018-07-20';
+const cacheName = 'd645fde81e1044e8a9c4b0402673730e';
 const filesToCache = [
-  './',
   'favicon.ico',
   'index.html',
   'infocard-ui.js',
   'infocard.css',
+  'main.css',
   'manifest.json',
   'options.css',
   'shared.js',
@@ -21,28 +21,28 @@ const filesToCache = [
   'tree-worker.js',
 ];
 
+// On install, cache the items in the `filesToCache` list
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(cacheName).then(cache => cache.addAll(filesToCache))
   );
 });
 
+// On activate, remove any old caches
 self.addEventListener('activate', event => {
+  async function deleteOldCache(key) {
+    if (key !== cacheName) {
+      return caches.delete(key);
+    }
+  }
+
   event.waitUntil(
-    caches.keys().then(keyList =>
-      Promise.all(
-        keyList.map(key => {
-          if (key !== cacheName) {
-            console.log('[ServiceWorker] Removing old cache', key);
-            return caches.delete(key);
-          }
-        })
-      )
-    )
+    caches.keys().then(keyList => Promise.all(keyList.map(deleteOldCache)))
   );
   return self.clients.claim();
 });
 
+// On fetch, return entries from the cache if possible
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches

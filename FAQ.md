@@ -15,14 +15,14 @@
 
 ### How do I create a data file?
 Use the
-[supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
+[Super Size](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
 program to generate data files. Data files are created from `.size` files,
 which are also
-[created by supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Usage_archive)
+[created by Super Size](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Usage_archive)
 and are used to archive details on Chrome's
 binary size.
 
-Supersize is located in the
+Super Size is located in the
 [`//tools/binary_size`](https://chromium.googlesource.com/chromium/src.git/+/master/tools/binary_size/)
 directory in the chromium repository.
 

@@ -1,13 +1,13 @@
 <img src="icon.png" height="160" width="160">
 
-# Chrome supersize reports
-Demo HTML reports from Chromium's supersize analysis tool.
+# Chrome Super Size Reports
+Demo HTML reports from Chromium's Super Size analysis tool.
 
 [**Demo**](demo)
 
 [FAQ](FAQ)
 
-[Supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
+[Super Size](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
 is a tool for collecting, archiving, and analyzing Chrome on Android's binary size.
 It archives `.size` files on various builders so regressions can be quickly analyzed.
 
@@ -36,5 +36,5 @@ Located in `//tools/binary_size/` in the Chromium repository.
 - [GitHub mirror](https://github.com/chromium/chromium/tree/master/tools/binary_size)
 
 ## See also:
-- [supersize](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
+- [Super Size](https://chromium.googlesource.com/chromium/src/+/master/tools/binary_size/README.md#Super-Size)
 - [agrieve.github.io/chrome/](https://agrieve.github.io/chrome/)
